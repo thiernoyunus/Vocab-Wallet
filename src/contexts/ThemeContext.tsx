@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useEffect, useState } from 'react';
 
 interface ThemeContextType {
   isDarkMode: boolean;
@@ -7,7 +7,9 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType>({
   isDarkMode: false,
-  toggleDarkMode: () => {},
+  toggleDarkMode: () => {
+    console.warn('toggleDarkMode called before ThemeProvider was initialized');
+  },
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
