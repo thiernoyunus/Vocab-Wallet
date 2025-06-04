@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { ChevronLeft, RotateCcw, Circle } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { StatsState, defaultStats } from "../types/stats";
 
 const lessonData = {
   1: {
@@ -52,6 +53,50 @@ export function Review() {
   const [isAnswered, setIsAnswered] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const sessionStartRef = useRef(Date.now());
+
+  const updateStats = (cardsReviewed: number) => {
+    const duration = (Date.now() - sessionStartRef.current) / 60000;
+    const today = new Date().toISOString().slice(0, 10);
+    let stats: StatsState = { ...defaultStats };
+    try {
+      const stored = localStorage.getItem("stats");
+      if (stored) {
+        stats = { ...stats, ...(JSON.parse(stored) as Partial<StatsState>) };
+      }
+    } catch (err) {
+      console.error("Failed to read stats from localStorage", err);
+    }
+
+    stats.totalCardsReviewed += cardsReviewed;
+    stats.totalSessions += 1;
+    stats.totalDuration += duration;
+
+    if (stats.lastSessionDate === today) {
+      stats.cardsReviewedToday += cardsReviewed;
+    } else {
+      if (stats.lastSessionDate) {
+        const diff =
+          (new Date(today).getTime() - new Date(stats.lastSessionDate).getTime()) /
+          (24 * 60 * 60 * 1000);
+        stats.currentStreak = diff === 1 ? stats.currentStreak + 1 : 1;
+      } else {
+        stats.currentStreak = 1;
+      }
+      stats.cardsReviewedToday = cardsReviewed;
+      stats.lastSessionDate = today;
+    }
+
+    if (stats.currentStreak > stats.longestStreak) {
+      stats.longestStreak = stats.currentStreak;
+    }
+
+    try {
+      localStorage.setItem("stats", JSON.stringify(stats));
+    } catch (err) {
+      console.error("Failed to save stats to localStorage", err);
+    }
+  };
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
@@ -83,6 +128,7 @@ export function Review() {
         setIsFlipped(false);
         setIsAnswered(false);
       } else {
+        updateStats(cards.length);
         navigate("/", { replace: true });
       }
     }, 300);
