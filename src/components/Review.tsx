@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { ChevronLeft, RotateCcw, Circle } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { StatsState, defaultStats, updateStats } from "../utils/updateStats";
 
 const lessonData = {
   1: {
@@ -52,6 +53,28 @@ export function Review() {
   const [isAnswered, setIsAnswered] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const sessionStartRef = useRef(Date.now());
+
+  const saveStats = (cardsReviewed: number) => {
+    let stats: StatsState = { ...defaultStats };
+    try {
+      const stored = localStorage.getItem("stats");
+      if (stored) {
+        stats = { ...stats, ...(JSON.parse(stored) as Partial<StatsState>) };
+      }
+    } catch (err) {
+      console.error("Failed to read stats from localStorage", err);
+    }
+
+    const updated = updateStats(stats, cardsReviewed, sessionStartRef.current);
+
+    try {
+      localStorage.setItem("stats", JSON.stringify(updated));
+    } catch (err) {
+      console.error("Failed to save stats to localStorage", err);
+    }
+  };
+
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
@@ -83,6 +106,7 @@ export function Review() {
         setIsFlipped(false);
         setIsAnswered(false);
       } else {
+        saveStats(cards.length);
         navigate("/", { replace: true });
       }
     }, 300);
