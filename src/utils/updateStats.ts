@@ -6,6 +6,7 @@ export interface StatsState {
   currentStreak: number;
   longestStreak: number;
   lastSessionDate: string;
+  points: number;
 }
 
 export const defaultStats: StatsState = {
@@ -16,6 +17,7 @@ export const defaultStats: StatsState = {
   currentStreak: 0,
   longestStreak: 0,
   lastSessionDate: "",
+  points: 0,
 };
 
 export function updateStats(
@@ -51,6 +53,9 @@ export function updateStats(
   if (stats.currentStreak > stats.longestStreak) {
     stats.longestStreak = stats.currentStreak;
   }
+
+  // award 10 points for each reviewed card
+  stats.points += cardsReviewed * 10;
 
   return stats;
 }

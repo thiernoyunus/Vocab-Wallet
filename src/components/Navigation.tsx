@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, BarChart2, Settings, BookOpen } from "lucide-react";
+import { Home, BarChart2, Settings, BookOpen, Trophy } from "lucide-react";
 
 export function Navigation() {
   const navigate = useNavigate();
@@ -36,6 +36,15 @@ export function Navigation() {
         >
           <BarChart2 size={24} />
           <span className="text-xs mt-1">Stats</span>
+        </button>
+        <button
+          onClick={() => navigate("/leaderboard")}
+          className={`flex flex-col items-center justify-center w-full h-full ${
+            isActive("/leaderboard") ? "text-blue-600 dark:text-blue-400" : "text-gray-600 dark:text-gray-400"
+          }`}
+        >
+          <Trophy size={24} />
+          <span className="text-xs mt-1">Rankings</span>
         </button>
         <button
           onClick={() => navigate("/settings")}

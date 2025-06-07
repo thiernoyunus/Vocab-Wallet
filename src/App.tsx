@@ -7,6 +7,7 @@ import { Settings } from "./components/Settings";
 import { Navigation } from "./components/Navigation";
 import { LessonDetail } from "./components/LessonDetail";
 import { Dictionary } from "./components/Dictionary";
+import { Leaderboard } from "./components/Leaderboard";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
 export function App() {
@@ -22,6 +23,7 @@ export function App() {
               <Route path="/stats" element={<Stats />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/dictionary" element={<Dictionary />} />
+              <Route path="/leaderboard" element={<Leaderboard />} />
             </Routes>
           </main>
           <Navigation />

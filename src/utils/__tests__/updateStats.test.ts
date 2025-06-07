@@ -13,5 +13,6 @@ describe('updateStats', () => {
     expect(result.longestStreak).toBe(1);
     expect(result.lastSessionDate).toBe('2024-01-01');
     expect(result.totalDuration).toBeCloseTo(1);
+    expect(result.points).toBe(100);
   });
 });

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Calendar, Clock, Zap, Award } from "lucide-react";
+import { Calendar, Clock, Zap, Award, Trophy } from "lucide-react";
 import { StatsState, defaultStats } from "../utils/updateStats";
 
 export function Stats() {
@@ -59,6 +59,11 @@ export function Stats() {
           <h3 className="font-semibold mb-1 dark:text-white">Total Reviewed</h3>
           <p className="text-2xl font-bold dark:text-white">{stats.totalCardsReviewed}</p>
           <p className="text-sm text-gray-600 dark:text-gray-400">cards</p>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
+          <Trophy className="text-pink-600 dark:text-pink-400 mb-2" size={20} />
+          <h3 className="font-semibold mb-1 dark:text-white">Points</h3>
+          <p className="text-2xl font-bold dark:text-white">{stats.points}</p>
         </div>
       </div>
     </div>
