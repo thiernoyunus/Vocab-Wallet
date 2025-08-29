@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft, Play } from "lucide-react";
+import { ChevronLeft, Play, BookOpen } from "lucide-react";
 
 const lessonData = {
   1: {
@@ -69,10 +69,17 @@ export function LessonDetail() {
           </div>
           <button
             onClick={() => navigate(`/review?lesson=${id}`)}
-            className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium flex items-center justify-center space-x-2 hover:bg-blue-700 transition-colors"
+            className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium flex items-center justify-center space-x-2 hover:bg-blue-700 transition-colors mb-3"
           >
             <Play size={20} />
             <span>Start Review</span>
+          </button>
+          <button
+            onClick={() => navigate(`/lesson/${id}/content`)}
+            className="w-full bg-green-600 text-white p-3 rounded-lg font-medium flex items-center justify-center space-x-2 hover:bg-green-700 transition-colors"
+          >
+            <BookOpen size={20} />
+            <span>Study Content</span>
           </button>
         </div>
       </header>
