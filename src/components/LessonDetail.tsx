@@ -62,6 +62,7 @@ export function LessonDetail() {
             <button
               onClick={() => navigate("/")}
               className="mr-4 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+              aria-label="Back to lessons"
             >
               <ChevronLeft size={24} />
             </button>
