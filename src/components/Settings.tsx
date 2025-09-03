@@ -27,6 +27,7 @@ export function Settings() {
           <div 
             onClick={toggleDarkMode}
             className={`w-11 h-6 ${isDarkMode ? 'bg-blue-600' : 'bg-gray-200'} rounded-full relative cursor-pointer transition-colors`}
+            data-testid="dark-mode-toggle"
           >
             <div 
               className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${

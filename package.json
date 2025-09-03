@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "preview": "vite preview",
-    "test": "vitest run --passWithNoTests false"
+    "test": "vitest",
+    "coverage": "vitest run --coverage"
   },
   "dependencies": {
     "lucide-react": "latest",
@@ -26,6 +27,7 @@
     "@typescript-eslint/eslint-plugin": "^5.54.0",
     "@typescript-eslint/parser": "^5.54.0",
     "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/coverage-istanbul": "^3.2.4",
     "@vitest/ui": "^3.2.1",
     "autoprefixer": "latest",
     "eslint": "^8.50.0",
