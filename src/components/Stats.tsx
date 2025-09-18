@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React from "react";
 import {
   Award,
   Calendar,
@@ -9,40 +9,17 @@ import {
   Zap
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { StatsState, defaultStats } from "../utils/updateStats";
-import {
-  MILESTONES,
-  STREAK_LEVELS,
-  calculateMilestoneProgress,
-  getStreakStatus
-} from "../utils/gamification";
+import { MILESTONES, STREAK_LEVELS } from "../utils/gamification";
 import { triggerHaptic } from "../utils/haptics";
+import { useStatsData } from "../hooks/useStatsData";
 
 export function Stats() {
-  const [stats, setStats] = useState<StatsState>(defaultStats);
+  const { stats, milestoneProgress, streakStatus } = useStatsData();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem("stats");
-      if (stored) {
-        const parsed: Partial<StatsState> = JSON.parse(stored);
-        setStats(prev => ({ ...prev, ...parsed }));
-      }
-    } catch (error) {
-      console.error("Failed to load stats from localStorage", error);
-    }
-  }, []);
 
   const dailyGoal = 20;
   const todayProgress = Math.min((stats.cardsReviewedToday / dailyGoal) * 100, 100);
   const avgDuration = stats.totalSessions ? stats.totalDuration / stats.totalSessions : 0;
-
-  const milestoneProgress = useMemo(
-    () => calculateMilestoneProgress(stats),
-    [stats]
-  );
-  const streakStatus = useMemo(() => getStreakStatus(stats), [stats]);
 
   return (
     <div className="flex h-full w-full flex-col bg-gradient-to-b from-slate-900 via-slate-950 to-black text-white">

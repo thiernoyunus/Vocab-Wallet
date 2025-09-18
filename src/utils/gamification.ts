@@ -29,6 +29,8 @@ export const MILESTONES: Milestone[] = [
   }
 ];
 
+const ORDERED_MILESTONES = [...MILESTONES].sort((a, b) => a.threshold - b.threshold);
+
 export interface MilestoneProgress {
   current: Milestone | null;
   next: Milestone | null;
@@ -38,12 +40,11 @@ export interface MilestoneProgress {
 
 export function calculateMilestoneProgress(stats: StatsState): MilestoneProgress {
   const totalReviewed = stats.totalCardsReviewed;
-  const ordered = [...MILESTONES].sort((a, b) => a.threshold - b.threshold);
 
   let current: Milestone | null = null;
   let next: Milestone | null = null;
 
-  for (const milestone of ordered) {
+  for (const milestone of ORDERED_MILESTONES) {
     if (totalReviewed >= milestone.threshold) {
       current = milestone;
       continue;
@@ -97,6 +98,8 @@ export const STREAK_LEVELS: StreakLevel[] = [
   }
 ];
 
+const ORDERED_STREAK_LEVELS = [...STREAK_LEVELS].sort((a, b) => a.days - b.days);
+
 export interface StreakStatus {
   currentLevel: StreakLevel | null;
   nextLevel: StreakLevel | null;
@@ -106,13 +109,14 @@ export interface StreakStatus {
 }
 
 export function getStreakStatus(stats: StatsState): StreakStatus {
-  const ordered = [...STREAK_LEVELS].sort((a, b) => a.days - b.days);
-  const unlockedLevels = ordered.filter(level => stats.longestStreak >= level.days);
+  const unlockedLevels = ORDERED_STREAK_LEVELS.filter(
+    level => stats.longestStreak >= level.days
+  );
   const currentLevel = unlockedLevels.length
     ? unlockedLevels[unlockedLevels.length - 1]
     : null;
 
-  const nextLevel = ordered.find(level => stats.currentStreak < level.days) ?? null;
+  const nextLevel = ORDERED_STREAK_LEVELS.find(level => stats.currentStreak < level.days) ?? null;
   const progress = nextLevel
     ? clamp((stats.currentStreak / nextLevel.days) * 100)
     : 100;

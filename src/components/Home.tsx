@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   Award,
@@ -15,13 +15,9 @@ import {
   Zap
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { StatsState, defaultStats } from "../utils/updateStats";
-import {
-  calculateMilestoneProgress,
-  getStreakStatus
-} from "../utils/gamification";
 import { lessons, type LessonStatus } from "../utils/lessons";
 import { triggerHaptic } from "../utils/haptics";
+import { useStatsData } from "../hooks/useStatsData";
 
 const statusStyles: Record<LessonStatus, string> = {
   completed: "from-emerald-500 via-emerald-400 to-green-400 shadow-emerald-500/30",
@@ -39,27 +35,8 @@ const statusIcons: Record<LessonStatus, LucideIcon> = {
 
 export function Home() {
   const navigate = useNavigate();
-  const [stats, setStats] = useState<StatsState>(defaultStats);
+  const { stats, milestoneProgress, streakStatus } = useStatsData();
   const [lockedMessage, setLockedMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem("stats");
-      if (stored) {
-        const parsed: Partial<StatsState> = JSON.parse(stored);
-        setStats(prev => ({ ...prev, ...parsed }));
-      }
-    } catch (err) {
-      console.error("Failed to load stats from localStorage", err);
-    }
-  }, []);
-
-  const milestoneProgress = useMemo(
-    () => calculateMilestoneProgress(stats),
-    [stats]
-  );
-
-  const streakStatus = useMemo(() => getStreakStatus(stats), [stats]);
 
   const handleLessonSelect = (lessonId: number, status: LessonStatus) => {
     if (status === "locked") {
