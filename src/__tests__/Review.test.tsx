@@ -3,6 +3,7 @@ import { Review } from '../components/Review';
 import { BrowserRouter, useNavigate, useLocation } from 'react-router-dom';
 import { vi } from 'vitest';
 import { defaultStats } from '../utils/updateStats';
+import { lessonContent } from '../utils/lessons';
 
 vi.mock('react-router-dom', async (importOriginal) => {
   const actual = await importOriginal();
@@ -36,78 +37,104 @@ const localStorageMock = (() => {
 Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
 describe('Review component', () => {
+  let mathRandomSpy: ReturnType<typeof vi.spyOn>;
+
   beforeEach(() => {
     mockedNavigateHook.mockReturnValue(navigateFn);
     mockedUseLocation.mockClear();
     navigateFn.mockClear();
     localStorage.clear();
+    mathRandomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.1);
     vi.useFakeTimers();
   });
 
   afterEach(() => {
+    mathRandomSpy.mockRestore();
     vi.useRealTimers();
   });
 
-  it('should show loading message when no lesson is specified', () => {
+  it('should load the default lesson when none is specified', () => {
     mockedUseLocation.mockReturnValue({ search: '' });
     render(<BrowserRouter><Review /></BrowserRouter>);
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.getByText(/Quiz/i)).toBeInTheDocument();
+    const optionButtons = screen
+      .getAllByRole('button')
+      .filter(button => button.className.includes('border-white/10') && button.className.includes('rounded-2xl'));
+    expect(optionButtons.length).toBeGreaterThan(0);
   });
 
   it('should load cards for the specified lesson', () => {
     mockedUseLocation.mockReturnValue({ search: '?lesson=1' });
     render(<BrowserRouter><Review /></BrowserRouter>);
-    expect(screen.getByText('Review Session')).toBeInTheDocument();
-    expect(screen.getByText('Salutation')).toBeInTheDocument();
+    expect(screen.getByText(/Greetings التحية Quiz/i)).toBeInTheDocument();
+    const optionButtons = screen
+      .getAllByRole('button')
+      .filter(button => button.className.includes('border-white/10') && button.className.includes('rounded-2xl'));
+    expect(optionButtons.length).toBe(4);
   });
 
-  it('should flip the card on click', () => {
+  it('should style the correct answer after selecting an option', () => {
     mockedUseLocation.mockReturnValue({ search: '?lesson=1' });
     render(<BrowserRouter><Review /></BrowserRouter>);
 
-    expect(screen.getByText('Salutation')).toBeInTheDocument();
-    const card = screen.getByText('Salutation').closest('.cursor-pointer');
-    fireEvent.click(card);
+    const promptText = screen.getByText(/Tap the English for/).textContent ?? '';
+    const arabicTerm = promptText.match(/"(.+)"/)?.[1] ?? '';
+    const words = lessonContent[1];
+    const currentWord = words.find(word => word.arabic === arabicTerm);
+    const correctOption = screen.getByRole('button', { name: currentWord?.english ?? '' });
+    fireEvent.click(correctOption);
 
-    expect(screen.getByText('تَحِيَّة/تَحِيَّات')).toBeInTheDocument();
+    expect(correctOption.className).toContain('border-emerald-400');
+    expect(correctOption.className).toContain('bg-emerald-500/20');
+
+    act(() => {
+      vi.runAllTimers();
+    });
   });
 
   it('should go to the next card after rating', () => {
     mockedUseLocation.mockReturnValue({ search: '?lesson=1' });
     render(<BrowserRouter><Review /></BrowserRouter>);
 
-    const card = screen.getByText('Salutation').closest('.cursor-pointer');
-    fireEvent.click(card);
-
-    const goodButton = screen.getByRole('button', { name: 'Good' });
-    fireEvent.click(goodButton);
+    const firstPrompt = screen.getByText(/Tap the English for/).textContent;
+    const arabicTerm = firstPrompt?.match(/"(.+)"/)?.[1] ?? '';
+    const words = lessonContent[1];
+    const currentWord = words.find(word => word.arabic === arabicTerm);
+    const button = screen.getByRole('button', { name: currentWord?.english ?? '' });
+    fireEvent.click(button);
 
     act(() => {
       vi.runAllTimers();
     });
 
-    expect(screen.getByText('Lesson')).toBeInTheDocument();
+    const nextPrompt = screen.getByText(/Tap the English for/).textContent;
+    expect(nextPrompt).not.toBe(firstPrompt);
   });
 
   it('should save stats and navigate home after the last card', () => {
     mockedUseLocation.mockReturnValue({ search: '?lesson=1' });
     render(<BrowserRouter><Review /></BrowserRouter>);
 
-    // Lesson 1 has 12 words
-    const totalCards = 12;
-    for (let i = 0; i < totalCards; i++) {
-      const cardContainer = screen.getByText(/ENGLISH/i).closest('.cursor-pointer');
-      fireEvent.click(cardContainer);
+    const words = lessonContent[1];
+    const totalCards = words.length;
 
-      const goodButton = screen.getByRole('button', { name: 'Good' });
-      fireEvent.click(goodButton);
+    for (let i = 0; i < totalCards; i++) {
+      const prompt = screen.getByText(/Tap the English for/).textContent ?? '';
+      const arabicTerm = prompt.match(/"(.+)"/)?.[1] ?? '';
+      const currentWord = words.find(word => word.arabic === arabicTerm);
+      const button = screen.getByRole('button', { name: currentWord?.english ?? '' });
+      fireEvent.click(button);
 
       act(() => {
         vi.runAllTimers();
       });
     }
 
-    expect(navigateFn).toHaveBeenCalledWith('/', { replace: true });
+    expect(screen.getByText(/Great Effort!|Legendary!/)).toBeInTheDocument();
+    const returnButton = screen.getByRole('button', { name: /Return to map/i });
+    fireEvent.click(returnButton);
+
+    expect(navigateFn).toHaveBeenCalledWith('/');
     const savedStats = JSON.parse(localStorage.getItem('stats'));
     expect(savedStats.totalCardsReviewed).toBe(totalCards);
     expect(savedStats.points).toBeGreaterThan(defaultStats.points);

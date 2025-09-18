@@ -1,59 +1,111 @@
-import React, { useEffect, useState, useRef } from "react";
-import { ChevronLeft, RotateCcw, Circle } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ArrowLeft,
+  BadgeCheck,
+  BookOpen,
+  Heart,
+  PartyPopper,
+  Shield,
+  Sparkles,
+  Trophy,
+  Zap
+} from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { StatsState, defaultStats, updateStats } from "../utils/updateStats";
+import { lessonContent, lessons } from "../utils/lessons";
+import { triggerHaptic } from "../utils/haptics";
 
-const lessonData = {
-  1: {
-    title: "Lesson 1: Salutation التحية",
-    words: [{
-      english: "Salutation",
-      arabic: "تَحِيَّة/تَحِيَّات"
-    }, {
-      english: "Lesson",
-      arabic: "دَرْس/دُرُوس"
-    }, {
-      english: "First",
-      arabic: "أَوَّل/أَوَّلُون"
-    }, {
-      english: "Brother",
-      arabic: "أَخ/إِخْوَة"
-    }, {
-      english: "Sister",
-      arabic: "أُخْت/أَخَوات"
-    }, {
-      english: "Mosque",
-      arabic: "مَسْجِد/مَسَاجِد"
-    }, {
-      english: "House",
-      arabic: "بَيْت/بُيُوت"
-    }, {
-      english: "You (dual)",
-      arabic: "أَنْتُما"
-    }, {
-      english: "They (dual)",
-      arabic: "هُما"
-    }, {
-      english: "How are you?",
-      arabic: "كَيْف حالُك؟"
-    }, {
-      english: "All praise be to Allah",
-      arabic: "الحَمْدُ لِلَّه أَنا بِخَيْر"
-    }, {
-      english: "Thank you I am fine as well",
-      arabic: "شُكْرًا أَنا بِخَيْرٍ أَيْضًا"
-    }]
-  }
-};
+interface QuizCard {
+  id: string;
+  prompt: string;
+  options: string[];
+  correct: string;
+  askForArabic: boolean;
+  reference: {
+    english: string;
+    arabic: string;
+  };
+}
+
+const HEARTS_MAX = 5;
+
+function shuffle<T>(array: T[]): T[] {
+  return [...array].sort(() => Math.random() - 0.5);
+}
+
+function buildOptions(correct: string, pool: string[]): string[] {
+  const uniquePool = [...new Set(pool.filter(option => option !== correct))];
+  const distractors = shuffle(uniquePool).slice(0, 3);
+  return shuffle([correct, ...distractors]);
+}
 
 export function Review() {
-  const [isFlipped, setIsFlipped] = useState(false);
-  const [currentCardIndex, setCurrentCardIndex] = useState(0);
-  const [cards, setCards] = useState([]);
-  const [isAnswered, setIsAnswered] = useState(false);
+  const [cards, setCards] = useState<QuizCard[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [showSummary, setShowSummary] = useState(false);
+  const [correctCount, setCorrectCount] = useState(0);
+  const [hearts, setHearts] = useState(HEARTS_MAX);
+  const [lessonTitle, setLessonTitle] = useState("Review Session");
+  const sessionStartRef = useRef(Date.now());
   const navigate = useNavigate();
   const location = useLocation();
-  const sessionStartRef = useRef(Date.now());
+
+  const progress = useMemo(() => {
+    if (cards.length === 0) return 0;
+    return Math.round((currentIndex / cards.length) * 100);
+  }, [cards.length, currentIndex]);
+
+  const currentCard = cards[currentIndex];
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const lessonIdParam = searchParams.get("lesson");
+    const defaultLessonId = lessons.find(lesson => lesson.status !== "locked")?.id ?? 1;
+    const lessonId = lessonIdParam ? Number(lessonIdParam) : defaultLessonId;
+    const words = lessonContent[lessonId];
+    const lessonMeta = lessons.find(item => item.id === lessonId);
+    if (!words || words.length === 0 || !lessonMeta) {
+      setCards([]);
+      return;
+    }
+
+    setLessonTitle(`${lessonMeta.title} Quiz`);
+
+    const quizCards: QuizCard[] = words.map(word => {
+      const askForArabic = Math.random() > 0.5;
+      const correctAnswer = askForArabic ? word.arabic : word.english;
+      const optionPool = askForArabic
+        ? words.map(item => item.arabic)
+        : words.map(item => item.english);
+      const options = buildOptions(correctAnswer, optionPool);
+      return {
+        id: `${word.english}-${Math.random().toString(36).slice(2, 6)}`,
+        prompt: askForArabic
+          ? `Tap the Arabic for "${word.english}"`
+          : `Tap the English for "${word.arabic}"`,
+        options,
+        correct: correctAnswer,
+        askForArabic,
+        reference: word
+      };
+    });
+
+    setCards(shuffle(quizCards));
+    setCurrentIndex(0);
+    setSelectedOption(null);
+    setCorrectCount(0);
+    setHearts(HEARTS_MAX);
+    setShowSummary(false);
+    setIsCorrect(null);
+  }, [location.search]);
+
+  useEffect(() => {
+    if (hearts <= 0 && cards.length > 0) {
+      setTimeout(() => setShowSummary(true), 600);
+    }
+  }, [hearts, cards.length]);
 
   const saveStats = (cardsReviewed: number) => {
     let stats: StatsState = { ...defaultStats };
@@ -75,173 +127,188 @@ export function Review() {
     }
   };
 
+  const handleSelect = (option: string) => {
+    if (!currentCard || selectedOption) return;
 
-  useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const lessonId = searchParams.get("lesson");
-    if (lessonId && lessonData[lessonId]) {
-      const lessonWords = lessonData[lessonId].words;
-      const reviewCards = lessonWords.map(word => ({
-        id: Math.random().toString(36).substr(2, 9),
-        question: word.english,
-        answer: word.arabic
-      }));
-      setCards(reviewCards);
+    const correctAnswer = option === currentCard.correct;
+    setSelectedOption(option);
+    setIsCorrect(correctAnswer);
+
+    if (correctAnswer) {
+      triggerHaptic(25);
+      setCorrectCount(prev => prev + 1);
+    } else {
+      triggerHaptic([40, 30, 40]);
+      setHearts(prev => Math.max(0, prev - 1));
     }
-  }, [location.search]);
 
-  if (cards.length === 0) {
-    return <div className="dark:text-white">Loading...</div>;
-  }
+    const nextIndex = currentIndex + 1;
+    const finished = nextIndex >= cards.length;
 
-  const currentCard = cards[currentCardIndex];
-  const cardsRemaining = cards.length - currentCardIndex;
-  const progress = (currentCardIndex / cards.length) * 100;
-
-  const handleRating = () => {
-    setIsAnswered(true);
     setTimeout(() => {
-      if (currentCardIndex < cards.length - 1) {
-        setCurrentCardIndex(prev => prev + 1);
-        setIsFlipped(false);
-        setIsAnswered(false);
-      } else {
+      if (finished || hearts - (correctAnswer ? 0 : 1) <= 0) {
         saveStats(cards.length);
-        navigate("/", { replace: true });
+        setShowSummary(true);
+        triggerHaptic([20, 20, 60]);
+      } else {
+        setCurrentIndex(nextIndex);
+        setSelectedOption(null);
+        setIsCorrect(null);
       }
-    }, 300);
+    }, 1000);
   };
 
-  return (
-    <div className="h-full w-full bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 flex flex-col">
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-3xl mx-auto">
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <button
-                onClick={() => navigate("/")}
-                className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-              >
-                <ChevronLeft size={24} />
-              </button>
-              <div className="flex items-center space-x-2">
-                {cards.map((_, idx) => (
-                  <Circle
-                    key={idx}
-                    size={8}
-                    className={`${
-                      idx === currentCardIndex
-                        ? "fill-blue-600 text-blue-600"
-                        : idx < currentCardIndex
-                        ? "fill-gray-300 text-gray-300"
-                        : "text-gray-300"
-                    }`}
-                  />
-                ))}
-              </div>
+  if (cards.length === 0) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-slate-950 text-white">
+        Loading lesson...
+      </div>
+    );
+  }
+
+  if (showSummary) {
+    const xpEarned = correctCount * 10;
+    const perfectRun = correctCount === cards.length && hearts > 0;
+
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-950 to-black text-white px-6">
+        <div className="w-full max-w-md rounded-3xl bg-white/10 p-8 text-center backdrop-blur-xl shadow-2xl shadow-sky-900/40">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-sky-500/30">
+            {perfectRun ? <Trophy size={36} className="text-yellow-200" /> : <Sparkles size={36} className="text-sky-200" />}
+          </div>
+          <h2 className="mt-6 text-3xl font-bold">{perfectRun ? "Legendary!" : "Great Effort!"}</h2>
+          <p className="mt-2 text-sm text-sky-100/80">
+            You answered {correctCount} out of {cards.length} correctly.
+          </p>
+          <div className="mt-6 flex items-center justify-around rounded-2xl bg-black/30 p-4 text-sm">
+            <div className="flex flex-col items-center gap-1">
+              <Zap className="text-yellow-200" size={22} />
+              <span className="text-xs uppercase tracking-[0.3em] text-sky-100/70">XP</span>
+              <p className="text-xl font-semibold">+{xpEarned}</p>
             </div>
-            <div className="flex justify-between items-center">
-              <h1 className="text-xl font-semibold dark:text-white">Review Session</h1>
-              <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-                {cardsRemaining} remaining
-              </p>
+            <div className="flex flex-col items-center gap-1">
+              <Heart className="text-rose-300" size={22} />
+              <span className="text-xs uppercase tracking-[0.3em] text-sky-100/70">Hearts</span>
+              <p className="text-xl font-semibold">{hearts}</p>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <BadgeCheck className="text-emerald-300" size={22} />
+              <span className="text-xs uppercase tracking-[0.3em] text-sky-100/70">Accuracy</span>
+              <p className="text-xl font-semibold">{Math.round((correctCount / cards.length) * 100)}%</p>
             </div>
           </div>
-          <div className="h-1 bg-gray-100 dark:bg-gray-700">
-            <div
-              className="h-full bg-blue-600 transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
-      </header>
-      <div className="flex-1 p-4 flex flex-col max-w-3xl mx-auto w-full">
-        <div
-          className={`flex-1 bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-8 flex items-center justify-center cursor-pointer transition-all duration-300 transform hover:shadow-md ${
-            isFlipped ? "bg-blue-50 dark:bg-blue-900/50" : ""
-          }`}
-          onClick={() => !isAnswered && setIsFlipped(!isFlipped)}
-        >
-          <div className="text-center max-w-md">
-            {!isFlipped ? (
-              <div className="space-y-4">
-                <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">ENGLISH</p>
-                <p className="text-2xl font-medium text-gray-900 dark:text-white">
-                  {currentCard.question}
-                </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Tap to reveal answer</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">ARABIC</p>
-                <p className="text-2xl font-medium text-gray-900 dark:text-white rtl">
-                  {currentCard.answer}
-                </p>
-                <button
-                  className="text-gray-600 dark:text-gray-400 flex items-center text-sm justify-center hover:text-gray-900 dark:hover:text-white transition-colors"
-                  onClick={e => {
-                    e.stopPropagation();
-                    setIsFlipped(false);
-                  }}
-                >
-                  <RotateCcw size={16} className="mr-1" />
-                  Show English
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-        <div className="mt-6 grid grid-cols-4 gap-3">
+
           <button
-            onClick={handleRating}
-            disabled={!isFlipped || isAnswered}
-            className={`p-4 rounded-xl font-medium transition-all duration-200 
-              ${
-                !isFlipped || isAnswered
-                  ? "opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-700 text-gray-400"
-                  : "bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/70 active:scale-95"
-              }`}
+            onClick={() => {
+              triggerHaptic(20);
+              navigate("/");
+            }}
+            className="mt-8 inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-sky-400 via-sky-300 to-cyan-300 px-6 py-3 text-base font-semibold text-slate-900 shadow-lg shadow-sky-500/30 transition-transform duration-150 hover:-translate-y-1"
           >
-            Again
-          </button>
-          <button
-            onClick={handleRating}
-            disabled={!isFlipped || isAnswered}
-            className={`p-4 rounded-xl font-medium transition-all duration-200
-              ${
-                !isFlipped || isAnswered
-                  ? "opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-700 text-gray-400"
-                  : "bg-orange-50 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 hover:bg-orange-100  dark:hover:bg-orange-900/70 active:scale-95"
-              }`}
-          >
-            Hard
-          </button>
-          <button
-            onClick={handleRating}
-            disabled={!isFlipped || isAnswered}
-            className={`p-4 rounded-xl font-medium transition-all duration-200
-              ${
-                !isFlipped || isAnswered
-                  ? "opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-700 text-gray-400"
-                  : "bg-green-50 dark:bg-green-900/50 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/70 active:scale-95"
-              }`}
-          >
-            Good
-          </button>
-          <button
-            onClick={handleRating}
-            disabled={!isFlipped || isAnswered}
-            className={`p-4 rounded-xl font-medium transition-all duration-200
-              ${
-                !isFlipped || isAnswered
-                  ? "opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-700 text-gray-400"
-                  : "bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/70 active:scale-95"
-              }`}
-          >
-            Easy
+            Return to map
           </button>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full w-full flex-col bg-gradient-to-b from-slate-900 via-slate-950 to-black text-white">
+      <header className="px-5 pt-8">
+        <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3">
+          <button
+            onClick={() => {
+              triggerHaptic(10);
+              navigate("/");
+            }}
+            className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white/80 backdrop-blur transition hover:bg-white/15"
+          >
+            <ArrowLeft size={18} />
+            Exit
+          </button>
+          <div className="flex items-center gap-4 text-sm font-semibold">
+            <div className="flex items-center gap-2 rounded-full bg-black/30 px-4 py-2">
+              <Heart size={18} className="text-rose-300" />
+              {hearts}/{HEARTS_MAX}
+            </div>
+            <div className="flex items-center gap-2 rounded-full bg-black/30 px-4 py-2">
+              <BookOpen size={18} className="text-sky-300" />
+              {currentIndex + 1}/{cards.length}
+            </div>
+          </div>
+        </div>
+        <div className="mx-auto mt-5 h-2 w-full max-w-3xl rounded-full bg-white/10">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-sky-400 via-sky-300 to-cyan-300 transition-all duration-500"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </header>
+
+      <main className="flex-1 px-5 py-8">
+        <div className="mx-auto flex h-full w-full max-w-3xl flex-col gap-8">
+          <div className="rounded-3xl bg-white/5 p-8 text-center shadow-lg shadow-sky-900/40 backdrop-blur">
+            <p className="text-sm uppercase tracking-[0.4em] text-sky-200/80">{lessonTitle}</p>
+            <h2 className="mt-3 text-3xl font-bold text-white drop-shadow-sm">{currentCard.prompt}</h2>
+            <p className="mt-2 text-sm text-sky-100/70">
+              {currentCard.askForArabic
+                ? `You are matching "${currentCard.reference.english}"`
+                : `You are matching "${currentCard.reference.arabic}"`}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {currentCard.options.map(option => {
+              const isSelected = selectedOption === option;
+              const isAnswer = isCorrect !== null && option === currentCard.correct;
+
+              return (
+                <button
+                  key={option}
+                  onClick={() => handleSelect(option)}
+                  disabled={Boolean(selectedOption)}
+                  className={`rounded-2xl border border-white/10 bg-white/10 p-5 text-left text-lg font-semibold text-white backdrop-blur transition-all duration-200 hover:-translate-y-1 hover:bg-sky-500/15 focus:outline-none focus:ring-2 focus:ring-sky-300/60 ${
+                    selectedOption
+                      ? isAnswer
+                        ? "border-emerald-400 bg-emerald-500/20"
+                        : isSelected
+                        ? "border-rose-400 bg-rose-500/20"
+                        : "opacity-60"
+                      : ""
+                  } ${currentCard.askForArabic ? "rtl text-xl" : ""}`}
+                >
+                  {option}
+                </button>
+              );
+            })}
+          </div>
+
+          {isCorrect !== null && (
+            <div
+              className={`flex items-center justify-between rounded-2xl border px-6 py-4 text-sm font-semibold shadow-lg ${
+                isCorrect
+                  ? "border-emerald-400 bg-emerald-500/20 text-emerald-100"
+                  : "border-rose-400 bg-rose-500/20 text-rose-100"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                {isCorrect ? <PartyPopper size={20} /> : <Shield size={20} />}
+                <div>
+                  <p>{isCorrect ? "Nice!" : "Almost!"}</p>
+                  <p className="text-xs text-white/80">
+                    {isCorrect
+                      ? "Keep the streak going."
+                      : `Correct answer: ${currentCard.correct}`}
+                  </p>
+                </div>
+              </div>
+              <span className="text-xs uppercase tracking-[0.4em] text-white/70">
+                {currentIndex + 1}/{cards.length}
+              </span>
+            </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 }

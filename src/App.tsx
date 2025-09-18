@@ -14,7 +14,7 @@ export function App() {
   return (
     <ThemeProvider>
       <Router>
-        <div className="h-screen w-full bg-white dark:bg-gray-900 flex flex-col">
+        <div className="flex h-screen w-full flex-col bg-slate-950 text-white">
           <main className="flex-1 overflow-hidden">
             <Routes>
               <Route path="/" element={<Home />} />

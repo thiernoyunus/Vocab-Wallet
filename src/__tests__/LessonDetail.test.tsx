@@ -31,7 +31,8 @@ describe('LessonDetail component', () => {
       </BrowserRouter>
     );
 
-    expect(screen.getByText('Lesson 1: Salutation التحية')).toBeInTheDocument();
+    expect(screen.getByText('Lesson 1')).toBeInTheDocument();
+    expect(screen.getByText('Greetings التحية')).toBeInTheDocument();
     expect(screen.getByText('Salutation')).toBeInTheDocument();
     expect(screen.getByText('تَحِيَّة/تَحِيَّات')).toBeInTheDocument();
     expect(screen.getByText('Thank you I am fine as well')).toBeInTheDocument();
@@ -57,7 +58,7 @@ describe('LessonDetail component', () => {
       </BrowserRouter>
     );
 
-    const backButton = screen.getByRole('button', { name: "Back to lessons" });
+    const backButton = screen.getByRole('button', { name: 'Back' });
     fireEvent.click(backButton);
     expect(navigateFn).toHaveBeenCalledWith('/');
   });
@@ -70,7 +71,7 @@ describe('LessonDetail component', () => {
       </BrowserRouter>
     );
 
-    const startReviewButton = screen.getByText('Start Review');
+    const startReviewButton = screen.getByText('Start adventure');
     fireEvent.click(startReviewButton);
     expect(navigateFn).toHaveBeenCalledWith('/review?lesson=1');
   });

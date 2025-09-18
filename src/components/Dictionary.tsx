@@ -1,51 +1,10 @@
 import React, { useMemo, useState } from "react";
-import { Search, Book } from "lucide-react";
+import { Search, BookOpen, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { lessons, lessonContent } from "../utils/lessons";
+import { triggerHaptic } from "../utils/haptics";
 
-const lessonData = {
-  1: {
-    title: "Lesson 1: Salutation التحية",
-    words: [{
-      english: "Salutation",
-      arabic: "تَحِيَّة/تَحِيَّات"
-    }, {
-      english: "Lesson",
-      arabic: "دَرْس/دُرُوس"
-    }, {
-      english: "First",
-      arabic: "أَوَّل/أَوَّلُون"
-    }, {
-      english: "Brother",
-      arabic: "أَخ/إِخْوَة"
-    }, {
-      english: "Sister",
-      arabic: "أُخْت/أَخَوات"
-    }, {
-      english: "Mosque",
-      arabic: "مَسْجِد/مَسَاجِد"
-    }, {
-      english: "House",
-      arabic: "بَيْت/بُيُوت"
-    }, {
-      english: "You (dual)",
-      arabic: "أَنْتُما"
-    }, {
-      english: "They (dual)",
-      arabic: "هُما"
-    }, {
-      english: "How are you?",
-      arabic: "كَيْف حالُك؟"
-    }, {
-      english: "All praise be to Allah",
-      arabic: "الحَمْدُ لِلَّه أَنا بِخَيْر"
-    }, {
-      english: "Thank you I am fine as well",
-      arabic: "شُكْرًا أَنا بِخَيْرٍ أَيْضًا"
-    }]
-  }
-};
-
-interface Word {
+interface WordIndexItem {
   english: string;
   arabic: string;
   lessons: number[];
@@ -56,104 +15,104 @@ export function Dictionary() {
   const navigate = useNavigate();
 
   const wordIndex = useMemo(() => {
-    const index: { [key: string]: Word } = {};
-    Object.entries(lessonData).forEach(([lessonId, lesson]) => {
-      lesson.words.forEach(word => {
-        const key = `${word.english.toLowerCase()}_${word.arabic}`;
-        if (!index[key]) {
-          index[key] = {
-            english: word.english,
-            arabic: word.arabic,
-            lessons: [parseInt(lessonId)]
-          };
+    const index = new Map<string, WordIndexItem>();
+    lessons.forEach(lesson => {
+      const entries = lessonContent[lesson.id] ?? [];
+      entries.forEach(word => {
+        const key = `${word.english.toLowerCase()}|${word.arabic}`;
+        if (!index.has(key)) {
+          index.set(key, { english: word.english, arabic: word.arabic, lessons: [lesson.id] });
         } else {
-          if (!index[key].lessons.includes(parseInt(lessonId))) {
-            index[key].lessons.push(parseInt(lessonId));
+          const current = index.get(key)!;
+          if (!current.lessons.includes(lesson.id)) {
+            current.lessons.push(lesson.id);
           }
         }
       });
     });
-    return index;
+    return Array.from(index.values()).sort((a, b) => a.english.localeCompare(b.english));
   }, []);
 
   const filteredWords = useMemo(() => {
-    const searchTermLower = searchTerm.toLowerCase();
-    return Object.values(wordIndex).filter(word =>
-      word.english.toLowerCase().includes(searchTermLower) || word.arabic.includes(searchTerm)
+    const needle = searchTerm.trim().toLowerCase();
+    if (!needle) return wordIndex;
+    return wordIndex.filter(word =>
+      word.english.toLowerCase().includes(needle) || word.arabic.toLowerCase().includes(needle)
     );
   }, [searchTerm, wordIndex]);
 
-  const handleLessonClick = (lessonId: number) => {
-    navigate(`/lesson/${lessonId}`);
-  };
-
   return (
-    <div className="h-full w-full bg-gray-50 dark:bg-gray-900 flex flex-col">
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 sticky top-0">
-        <h1 className="text-2xl font-bold mb-4 dark:text-white">Dictionary</h1>
-        <div className="relative">
-          <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search words in English or Arabic..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
+    <div className="flex h-full w-full flex-col bg-gradient-to-b from-slate-900 via-slate-950 to-black text-white">
+      <header className="sticky top-0 z-10 border-b border-white/10 bg-slate-950/90 px-5 py-6 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => {
+                triggerHaptic(15);
+                navigate("/");
+              }}
+              className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.4em] text-white/80 transition hover:bg-white/15"
+            >
+              <ArrowLeft size={16} />
+              Back
+            </button>
+            <div className="flex items-center gap-2 text-sm text-sky-100/70">
+              <BookOpen size={18} className="text-sky-300" />
+              {filteredWords.length} entries
+            </div>
+          </div>
+          <div className="relative">
+            <Search size={20} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sky-200/60" />
+            <input
+              type="text"
+              placeholder="Search English or Arabic vocabulary"
+              value={searchTerm}
+              onChange={event => setSearchTerm(event.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/10 py-3 pl-12 pr-4 text-sm text-white shadow-inner shadow-slate-900 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/50"
+            />
+          </div>
         </div>
-      </div>
-      <div className="flex-1 overflow-auto p-4">
-        {searchTerm ? (
-          <div className="space-y-4">
-            {filteredWords.map((word, index) => (
-              <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-                <div className="flex justify-between items-start mb-2">
-                  <span className="text-lg font-medium dark:text-white">{word.english}</span>
-                  <span className="text-lg text-gray-600 dark:text-gray-400 text-right rtl">
-                    {word.arabic}
-                  </span>
+      </header>
+
+      <main className="flex-1 overflow-auto px-5 pb-24">
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 py-6">
+          {filteredWords.map(word => (
+            <div
+              key={`${word.english}-${word.arabic}`}
+              className="rounded-3xl border border-white/5 bg-white/5 p-5 text-white backdrop-blur transition hover:border-sky-400/60 hover:bg-sky-500/10"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.4em] text-sky-100/70">English</p>
+                  <p className="mt-2 text-xl font-semibold">{word.english}</p>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {word.lessons.map(lessonId => (
+                <div className="text-right">
+                  <p className="text-xs uppercase tracking-[0.4em] text-sky-100/70">Arabic</p>
+                  <p className="mt-2 text-2xl font-semibold rtl">{word.arabic}</p>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-sky-100/80">
+                {word.lessons.map(lessonId => {
+                  const lesson = lessons.find(item => item.id === lessonId);
+                  if (!lesson) return null;
+                  return (
                     <button
-                      key={lessonId}
-                      onClick={() => handleLessonClick(lessonId)}
-                      className="inline-flex items-center text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                      key={`${word.english}-${lessonId}`}
+                      onClick={() => {
+                        triggerHaptic(10);
+                        navigate(`/lesson/${lessonId}`);
+                      }}
+                      className="rounded-full border border-sky-400/50 bg-sky-500/10 px-4 py-2 text-sky-100 transition hover:bg-sky-400/20"
                     >
-                      <Book size={16} className="mr-1" />
-                      Lesson {lessonId}
+                      {lesson.title}
                     </button>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {Object.entries(lessonData).map(([lessonId, lesson]) => (
-              <div key={lessonId}>
-                <div
-                  className="flex items-center space-x-2 mb-3 cursor-pointer"
-                  onClick={() => handleLessonClick(parseInt(lessonId))}
-                >
-                  <Book size={20} className="text-blue-600 dark:text-blue-400" />
-                  <h2 className="text-lg font-semibold dark:text-white">{lesson.title}</h2>
-                </div>
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
-                  {lesson.words.map((word, index) => (
-                    <div key={index} className="p-4 flex justify-between items-center border-b last:border-b-0 border-gray-100 dark:border-gray-700">
-                      <span className="text-gray-900 dark:text-white">{word.english}</span>
-                      <span className="text-gray-600 dark:text-gray-400 text-right rtl">
-                        {word.arabic}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+            </div>
+          ))}
+        </div>
+      </main>
     </div>
   );
 }

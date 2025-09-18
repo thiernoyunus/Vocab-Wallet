@@ -24,10 +24,10 @@ describe('Navigation component', () => {
   });
 
   const testCases = [
-    { path: '/', name: 'Home' },
+    { path: '/', name: 'Map' },
     { path: '/dictionary', name: 'Dictionary' },
     { path: '/stats', name: 'Stats' },
-    { path: '/leaderboard', name: 'Rankings' },
+    { path: '/leaderboard', name: 'Rank' },
     { path: '/settings', name: 'Settings' },
   ];
 
@@ -39,7 +39,7 @@ describe('Navigation component', () => {
           <Navigation />
         </BrowserRouter>
       );
-      const button = screen.getByText(name);
+      const button = screen.getByRole('button', { name });
       expect(button).toBeInTheDocument();
       fireEvent.click(button);
       expect(navigateFn).toHaveBeenCalledWith(path);
@@ -52,8 +52,11 @@ describe('Navigation component', () => {
           <Navigation />
         </BrowserRouter>
       );
-      const button = screen.getByText(name).parentElement;
-      expect(button).toHaveClass('text-blue-600');
+      const button = screen.getByRole('button', { name });
+      expect(button).toHaveClass('bg-gradient-to-br');
+      expect(button).toHaveClass('from-sky-500');
+      expect(button).toHaveClass('via-sky-400');
+      expect(button).toHaveClass('to-cyan-400');
     });
 
     it(`should not apply active styles to the ${name} button when not at ${path}`, () => {
@@ -63,9 +66,9 @@ describe('Navigation component', () => {
             <Navigation />
           </BrowserRouter>
         );
-        const button = screen.getByText(name).parentElement;
-        expect(button).not.toHaveClass('text-blue-600');
-        expect(button).toHaveClass('text-gray-600');
+        const button = screen.getByRole('button', { name });
+        expect(button).not.toHaveClass('bg-gradient-to-br');
+        expect(button).toHaveClass('text-sky-100/70');
       });
   });
 });
