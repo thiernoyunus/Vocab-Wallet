@@ -1,49 +1,46 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Book, ChevronRight, Clock, Target, Zap, Flame, Star } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import {
+  Award,
+  BadgeCheck,
+  BookOpen,
+  ChevronRight,
+  Flame,
+  Heart,
+  Lock,
+  PartyPopper,
+  ShieldCheck,
+  Sparkles,
+  Swords,
+  Zap
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { StatsState, defaultStats } from "../utils/updateStats";
 import {
   calculateMilestoneProgress,
-  getStreakStatus,
+  getStreakStatus
 } from "../utils/gamification";
+import { lessons, type LessonStatus } from "../utils/lessons";
+import { triggerHaptic } from "../utils/haptics";
 
-const lessons = [{
-  id: 1,
-  title: "Lesson 1: Salutation التحية",
-  color: "blue",
-  wordCount: 12
-}, {
-  id: 2,
-  title: "Lesson 2: Getting to know one another - التعارف",
-  color: "green",
-  wordCount: 15
-}, {
-  id: 3,
-  title: "Lesson 3: Family الأسرة",
-  color: "orange",
-  wordCount: 18
-}, {
-  id: 4,
-  title: "Lesson 4: The residence - السكن",
-  color: "purple",
-  wordCount: 14
-}, {
-  id: 5,
-  title: "Lesson 5: Self introduction- التَّعْرِيفْ بِالنَّفْس",
-  color: "blue",
-  wordCount: 16
-}];
+const statusStyles: Record<LessonStatus, string> = {
+  completed: "from-emerald-500 via-emerald-400 to-green-400 shadow-emerald-500/30",
+  current: "from-sky-500 via-sky-400 to-cyan-400 shadow-sky-500/30",
+  unlocked: "from-purple-500 via-indigo-400 to-blue-400 shadow-purple-500/30",
+  locked: "from-gray-400 via-gray-500 to-slate-600 shadow-gray-500/20"
+};
 
-const colorVariants = {
-  blue: "bg-blue-50 dark:bg-blue-900/50 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-100",
-  green: "bg-green-50 dark:bg-green-900/50 border-green-200 dark:border-green-800 text-green-800 dark:text-green-100",
-  orange: "bg-orange-50 dark:bg-orange-900/50 border-orange-200 dark:border-orange-800 text-orange-800 dark:text-orange-100",
-  purple: "bg-purple-50 dark:bg-purple-900/50 border-purple-200 dark:border-purple-800 text-purple-800 dark:text-purple-100"
+const statusIcons: Record<LessonStatus, LucideIcon> = {
+  completed: BadgeCheck,
+  current: Sparkles,
+  unlocked: Zap,
+  locked: Lock
 };
 
 export function Home() {
   const navigate = useNavigate();
   const [stats, setStats] = useState<StatsState>(defaultStats);
+  const [lockedMessage, setLockedMessage] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -64,118 +61,201 @@ export function Home() {
 
   const streakStatus = useMemo(() => getStreakStatus(stats), [stats]);
 
+  const handleLessonSelect = (lessonId: number, status: LessonStatus) => {
+    if (status === "locked") {
+      triggerHaptic([15, 30, 15]);
+      setLockedMessage("Complete the previous quest to unlock this stage!");
+      setTimeout(() => setLockedMessage(null), 1800);
+      return;
+    }
+
+    triggerHaptic(30);
+    navigate(`/lesson/${lessonId}`);
+  };
+
   return (
-    <div className="h-full w-full bg-gray-50 dark:bg-gray-900 overflow-auto">
-      <div className="max-w-2xl mx-auto p-4">
-        <h1 className="text-2xl font-bold mb-6 dark:text-white">Welcome back!</h1>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm mb-4">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold dark:text-white">Today's Review</h2>
-            <Clock className="text-blue-600 dark:text-blue-400" size={20} />
-          </div>
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400">Cards due</p>
-              <p className="text-2xl font-bold dark:text-white">15</p>
-            </div>
-            <button onClick={() => navigate("/review")} className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-              Start Review
-            </button>
+    <div className="h-full w-full bg-gradient-to-b from-sky-900 via-slate-900 to-slate-950 overflow-auto text-white">
+      <div className="max-w-3xl mx-auto px-5 pb-24 pt-10 relative">
+        <div className="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-sky-600/60 to-transparent blur-3xl" />
+        <div className="relative flex items-center justify-between gap-3">
+          <button
+            className="flex items-center gap-2 rounded-full bg-sky-500/20 px-4 py-2 text-sm font-semibold backdrop-blur"
+            onClick={() => {
+              triggerHaptic(20);
+              navigate("/stats");
+            }}
+          >
+            <Sparkles size={18} />
+            Daily Streak
+            <ChevronRight size={16} className="opacity-70" />
+          </button>
+          <div className="flex items-center gap-2 rounded-full bg-black/40 px-4 py-2 text-sm font-semibold">
+            <Zap size={18} className="text-yellow-300" />
+            {stats.points} XP
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
-            <Flame className="text-orange-500 dark:text-orange-300 mb-2" size={20} />
-            <h3 className="font-semibold mb-1 dark:text-white">Current Streak</h3>
-            <p className="text-2xl font-bold dark:text-white">
-              {stats.currentStreak} {stats.currentStreak === 1 ? "day" : "days"}
+
+        <section className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <div className="rounded-2xl bg-white/10 p-4 backdrop-blur shadow-lg shadow-sky-900/20">
+            <div className="flex items-center gap-2 text-sm font-medium text-sky-200">
+              <Flame size={18} />
+              Streak
+            </div>
+            <p className="mt-2 text-3xl font-bold">{stats.currentStreak}d</p>
+            <p className="text-xs text-sky-100/70">
+              {streakStatus.nextLevel
+                ? `${streakStatus.daysToNext} more day${
+                    streakStatus.daysToNext === 1 ? "" : "s"
+                  } to reach ${streakStatus.nextLevel.title}`
+                : "You are unstoppable!"}
             </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Longest run: {stats.longestStreak} days
-            </p>
-            <div className="mt-3 h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
+          </div>
+          <div className="rounded-2xl bg-white/10 p-4 backdrop-blur shadow-lg shadow-violet-900/20">
+            <div className="flex items-center gap-2 text-sm font-medium text-violet-200">
+              <Heart size={18} />
+              Hearts
+            </div>
+            <p className="mt-2 text-3xl font-bold">5</p>
+            <p className="text-xs text-violet-100/70">Keep them by answering correctly!</p>
+          </div>
+          <div className="rounded-2xl bg-white/10 p-4 backdrop-blur shadow-lg shadow-emerald-900/20 sm:col-span-1">
+            <div className="flex items-center gap-2 text-sm font-medium text-emerald-200">
+              <Award size={18} />
+              Milestone
+            </div>
+            <p className="mt-2 text-3xl font-bold">{milestoneProgress.current?.title ?? "New"}</p>
+            <div className="mt-3 h-2 rounded-full bg-white/20">
               <div
-                className="h-full bg-orange-500 dark:bg-orange-300 rounded-full transition-all"
-                style={{ width: `${streakStatus.progress}%` }}
+                className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-green-300"
+                style={{ width: `${milestoneProgress.progress}%` }}
               />
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {streakStatus.nextLevel
-                ? `${streakStatus.daysToNext} day${
-                    streakStatus.daysToNext === 1 ? "" : "s"
-                  } until ${streakStatus.nextLevel.title}`
-                : "Streak legend! You've unlocked every badge."}
+            <p className="mt-1 text-xs text-emerald-100/70">
+              {milestoneProgress.next
+                ? `${milestoneProgress.cardsToGo} cards until ${milestoneProgress.next.title}`
+                : "Every milestone unlocked!"}
             </p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
-            <Star className="text-yellow-500 dark:text-yellow-300 mb-2" size={20} />
-            <h3 className="font-semibold mb-1 dark:text-white">Points Earned</h3>
-            <p className="text-2xl font-bold dark:text-white">{stats.points}</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              +10 for every card you review
-            </p>
+        </section>
+
+        <section className="mt-10 rounded-3xl bg-black/40 p-6 backdrop-blur-xl shadow-2xl shadow-sky-900/30 border border-white/5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm uppercase tracking-widest text-sky-200/80">Daily quest</p>
+              <h2 className="mt-1 text-2xl font-bold text-white">Review 10 words to earn bonus XP</h2>
+            </div>
+            <button
+              onClick={() => {
+                triggerHaptic(25);
+                navigate("/review?lesson=2");
+              }}
+              className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-400 via-sky-300 to-cyan-300 px-6 py-3 text-base font-semibold text-slate-900 shadow-lg shadow-sky-500/30 transition-transform duration-150 hover:-translate-y-0.5"
+            >
+              Start +15 XP
+              <PartyPopper size={18} className="transition-transform group-hover:rotate-12" />
+            </button>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
-            <Zap className="text-purple-500 dark:text-purple-300 mb-2" size={20} />
-            <h3 className="font-semibold mb-1 dark:text-white">Cards Reviewed</h3>
-            <p className="text-2xl font-bold dark:text-white">{stats.totalCardsReviewed}</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Keep going to unlock more milestones
-            </p>
+          <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-sky-100/80">
+            <div className="flex items-center gap-2">
+              <ShieldCheck size={18} className="text-emerald-300" />
+              Mastery boost active
+            </div>
+            <div className="flex items-center gap-2">
+              <Swords size={18} className="text-rose-300" />
+              Duel friends after finishing!
+            </div>
           </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="font-semibold dark:text-white">Milestone Journey</h3>
-            <Target className="text-green-600 dark:text-green-400" size={20} />
-          </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-            {milestoneProgress.next
-              ? `${milestoneProgress.cardsToGo} card${
-                  milestoneProgress.cardsToGo === 1 ? "" : "s"
-                } to reach ${milestoneProgress.next.title}`
-              : "You've conquered every milestone—amazing work!"}
-          </p>
-          <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
-            <div
-              className="h-full bg-green-500 rounded-full transition-all"
-              style={{ width: `${milestoneProgress.progress}%` }}
-            />
-          </div>
-          {milestoneProgress.current && (
-            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-              Last milestone: {milestoneProgress.current.title}
-            </p>
-          )}
-        </div>
-        <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-          <h2 className="text-xl font-bold mb-2 dark:text-white">Arabic Course</h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Select a lesson to start learning
-          </p>
-          <div className="space-y-3">
-            {lessons.map(lesson => (
-              <button
-                key={lesson.id}
-                onClick={() => navigate(`/lesson/${lesson.id}`)}
-                className={`w-full p-4 rounded-xl border ${colorVariants[lesson.color]} text-left transition-all duration-200 hover:shadow-md`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Book className="shrink-0" size={20} />
-                    <div>
-                      <h2 className="font-semibold">{lesson.title}</h2>
-                      <p className="text-sm opacity-75">
-                        {lesson.wordCount} words to learn
-                      </p>
+        </section>
+
+        <section className="relative mt-14">
+          <h2 className="text-lg font-semibold uppercase tracking-[0.3em] text-sky-200/70">Quest path</h2>
+          <p className="mt-1 text-sm text-sky-100/70">Complete lessons to light up the trail</p>
+
+          <div className="relative mt-10 pb-16">
+            <div className="absolute inset-x-1/2 top-0 bottom-0 w-1 -translate-x-1/2 bg-gradient-to-b from-sky-500/40 via-sky-400/30 to-transparent" />
+            <div className="space-y-16">
+              {lessons.map((lesson, index) => {
+                const Icon = statusIcons[lesson.status];
+                const alignment = index % 2 === 0 ? "items-start" : "items-end";
+                const isLocked = lesson.status === "locked";
+
+                return (
+                  <div key={lesson.id} className={`relative flex ${alignment}`}>
+                    <div
+                      className={`absolute left-1/2 top-12 h-16 w-16 -translate-x-1/2 rounded-full border border-white/20 bg-black/60 backdrop-blur`}
+                    >
+                      <div className="flex h-full items-center justify-center">
+                        <span className="text-sm font-semibold text-sky-100">{lesson.milestone}</span>
+                      </div>
                     </div>
+
+                    <button
+                      onClick={() => handleLessonSelect(lesson.id, lesson.status)}
+                      className={`group relative w-full max-w-[260px] rounded-3xl bg-gradient-to-br p-5 text-left shadow-xl transition-all duration-200 hover:-translate-y-2 ${
+                        statusStyles[lesson.status]
+                      } ${isLocked ? "opacity-70" : ""}`}
+                    >
+                      <span className="absolute -top-3 left-5 rounded-full bg-black/40 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-white/80">
+                        {lesson.status === "completed"
+                          ? "Completed"
+                          : lesson.status === "current"
+                          ? "Current"
+                          : lesson.status === "unlocked"
+                          ? "Ready"
+                          : "Locked"}
+                      </span>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-xl font-bold text-white drop-shadow-sm">{lesson.title}</h3>
+                          <p className="mt-1 text-sm text-white/80">
+                            {lesson.description}
+                          </p>
+                        </div>
+                        <div
+                          className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 text-white ${
+                            isLocked ? "opacity-70" : ""
+                          }`}
+                        >
+                          <Icon size={26} />
+                        </div>
+                      </div>
+                      <div className="mt-4 flex items-center justify-between text-sm font-semibold text-white/80">
+                        <span className="flex items-center gap-2">
+                          <BookOpen size={16} />
+                          {lesson.wordCount} words
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Zap size={16} className="text-yellow-200" />
+                          {lesson.xp} XP
+                        </span>
+                      </div>
+                      {lesson.status === "current" && (
+                        <div className="mt-4 rounded-2xl bg-white/15 p-3 text-sm text-white/90">
+                          <p className="font-semibold">Next reward:</p>
+                          <p className="mt-1 text-xs uppercase tracking-widest text-white/70">
+                            Unlock lightning review & 30 bonus XP
+                          </p>
+                        </div>
+                      )}
+                      {isLocked && (
+                        <div className="mt-4 flex items-center gap-2 rounded-2xl bg-black/30 p-3 text-xs font-medium text-white/70">
+                          <Lock size={16} />
+                          Win the previous challenge to unlock
+                        </div>
+                      )}
+                    </button>
                   </div>
-                  <ChevronRight size={20} className="shrink-0" />
-                </div>
-              </button>
-            ))}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        </section>
+
+        {lockedMessage && (
+          <div className="fixed inset-x-0 bottom-20 mx-auto w-full max-w-sm rounded-2xl bg-black/80 px-5 py-3 text-center text-sm font-semibold text-white backdrop-blur">
+            {lockedMessage}
+          </div>
+        )}
       </div>
     </div>
   );

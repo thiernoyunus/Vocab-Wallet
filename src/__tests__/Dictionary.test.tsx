@@ -5,41 +5,37 @@ import { Dictionary } from '../components/Dictionary'
 import { describe, it, expect } from 'vitest'
 
 describe('Dictionary', () => {
-  it('filters words based on search input', async () => {
+  const setup = () =>
     render(
       <MemoryRouter>
         <Dictionary />
       </MemoryRouter>
     )
 
-    const input = screen.getByPlaceholderText(/search words/i)
+  it('filters words based on search input', async () => {
+    setup()
+
+    const input = screen.getByPlaceholderText(/search english or arabic vocabulary/i)
     await userEvent.type(input, 'bro')
 
     expect(screen.getByText('Brother')).toBeInTheDocument()
     expect(screen.queryByText('Sister')).not.toBeInTheDocument()
+    expect(screen.getByText('1 entries')).toBeInTheDocument()
   })
 
   it('allows searching by Arabic', async () => {
-    render(
-      <MemoryRouter>
-        <Dictionary />
-      </MemoryRouter>
-    )
+    setup()
 
-    const input = screen.getByPlaceholderText(/search words/i)
+    const input = screen.getByPlaceholderText(/search english or arabic vocabulary/i)
     await userEvent.type(input, 'أَخ')
 
     expect(screen.getByText('Brother')).toBeInTheDocument()
   })
 
   it('is case insensitive for English search', async () => {
-    render(
-      <MemoryRouter>
-        <Dictionary />
-      </MemoryRouter>
-    )
+    setup()
 
-    const input = screen.getByPlaceholderText(/search words/i)
+    const input = screen.getByPlaceholderText(/search english or arabic vocabulary/i)
     await userEvent.type(input, 'BRO')
 
     expect(screen.getByText('Brother')).toBeInTheDocument()
@@ -47,32 +43,24 @@ describe('Dictionary', () => {
   })
 
   it('shows lesson view when search is cleared', async () => {
-    render(
-      <MemoryRouter>
-        <Dictionary />
-      </MemoryRouter>
-    )
+    setup()
 
-    const input = screen.getByPlaceholderText(/search words/i)
+    const input = screen.getByPlaceholderText(/search english or arabic vocabulary/i)
     await userEvent.type(input, 'bro')
     await userEvent.clear(input)
 
-    expect(
-      screen.getByText('Lesson 1: Salutation التحية')
-    ).toBeInTheDocument()
+    expect(screen.getByText('All praise be to Allah')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /Greetings التحية/i }).length).toBeGreaterThan(0)
   })
 
   it('handles no matches', async () => {
-    render(
-      <MemoryRouter>
-        <Dictionary />
-      </MemoryRouter>
-    )
+    setup()
 
-    const input = screen.getByPlaceholderText(/search words/i)
+    const input = screen.getByPlaceholderText(/search english or arabic vocabulary/i)
     await userEvent.type(input, 'xyz')
 
     expect(screen.queryByText('Brother')).not.toBeInTheDocument()
     expect(screen.queryByText('Sister')).not.toBeInTheDocument()
+    expect(screen.getByText('0 entries')).toBeInTheDocument()
   })
 })

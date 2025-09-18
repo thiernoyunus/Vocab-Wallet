@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { Leaderboard } from '../components/Leaderboard';
 import { defaultStats } from '../utils/updateStats';
 
@@ -27,33 +27,43 @@ describe('Leaderboard component', () => {
 
   it('should render the title', () => {
     render(<Leaderboard />);
-    expect(screen.getByText('Leaderboard')).toBeInTheDocument();
+    expect(screen.getByText('Sky League')).toBeInTheDocument();
+    expect(screen.getByText('League standings')).toBeInTheDocument();
   });
 
   it('should display the default leaderboard with the user\'s score from default stats when localStorage is empty', () => {
     render(<Leaderboard />);
-    expect(screen.getByText('1. Aisha')).toBeInTheDocument();
-    expect(screen.getByText('1200')).toBeInTheDocument();
-    expect(screen.getByText('4. You')).toBeInTheDocument();
-    expect(screen.getByText(defaultStats.points.toString())).toBeInTheDocument();
+    const challengersSection = screen.getByText('All challengers').closest('section');
+    expect(challengersSection).not.toBeNull();
+    const challengers = within(challengersSection as HTMLElement);
+    expect(challengers.getByText('1. Aisha')).toBeInTheDocument();
+    expect(challengers.getByText(/1200\s*XP/i)).toBeInTheDocument();
+    expect(challengers.getByText('4. You')).toBeInTheDocument();
+    expect(challengers.getByText(new RegExp(`^${defaultStats.points}\\s*XP$`, 'i'))).toBeInTheDocument();
   });
 
   it('should display the leaderboard with the user\'s score from localStorage', () => {
     const stats = { ...defaultStats, points: 1500 };
     localStorage.setItem('stats', JSON.stringify(stats));
     render(<Leaderboard />);
-    expect(screen.getByText('1. You')).toBeInTheDocument();
-    expect(screen.getByText('1500')).toBeInTheDocument();
-    expect(screen.getByText('2. Aisha')).toBeInTheDocument();
-    expect(screen.getByText('1200')).toBeInTheDocument();
+    const challengersSection = screen.getByText('All challengers').closest('section');
+    expect(challengersSection).not.toBeNull();
+    const challengers = within(challengersSection as HTMLElement);
+    expect(challengers.getByText('1. You')).toBeInTheDocument();
+    expect(challengers.getByText(/1500\s*XP/i)).toBeInTheDocument();
+    expect(challengers.getByText('2. Aisha')).toBeInTheDocument();
+    expect(challengers.getByText(/1200\s*XP/i)).toBeInTheDocument();
   });
 
   it('should handle invalid JSON in localStorage gracefully', () => {
     localStorage.setItem('stats', 'invalid json');
     render(<Leaderboard />);
     // Should fall back to default stats
-    expect(screen.getByText('4. You')).toBeInTheDocument();
-    expect(screen.getByText(defaultStats.points.toString())).toBeInTheDocument();
+    const challengersSection = screen.getByText('All challengers').closest('section');
+    expect(challengersSection).not.toBeNull();
+    const challengers = within(challengersSection as HTMLElement);
+    expect(challengers.getByText('4. You')).toBeInTheDocument();
+    expect(challengers.getByText(new RegExp(`^${defaultStats.points}\\s*XP$`, 'i'))).toBeInTheDocument();
   });
 
   it('should display at most 10 entries', () => {

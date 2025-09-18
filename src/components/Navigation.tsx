@@ -1,60 +1,47 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, BarChart2, Settings, BookOpen, Trophy } from "lucide-react";
+import { BookOpen, Home, Settings, Trophy, BarChart2 } from "lucide-react";
+import { triggerHaptic } from "../utils/haptics";
+
+const navItems = [
+  { label: "Map", icon: Home, path: "/" },
+  { label: "Dictionary", icon: BookOpen, path: "/dictionary" },
+  { label: "Stats", icon: BarChart2, path: "/stats" },
+  { label: "Rank", icon: Trophy, path: "/leaderboard" },
+  { label: "Settings", icon: Settings, path: "/settings" }
+];
 
 export function Navigation() {
   const navigate = useNavigate();
   const location = useLocation();
-  const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-      <div className="flex justify-around items-center h-16">
-        <button
-          onClick={() => navigate("/")}
-          className={`flex flex-col items-center justify-center w-full h-full ${
-            isActive("/") ? "text-blue-600 dark:text-blue-400" : "text-gray-600 dark:text-gray-400"
-          }`}
-        >
-          <Home size={24} />
-          <span className="text-xs mt-1">Home</span>
-        </button>
-        <button
-          onClick={() => navigate("/dictionary")}
-          className={`flex flex-col items-center justify-center w-full h-full ${
-            isActive("/dictionary") ? "text-blue-600 dark:text-blue-400" : "text-gray-600 dark:text-gray-400"
-          }`}
-        >
-          <BookOpen size={24} />
-          <span className="text-xs mt-1">Dictionary</span>
-        </button>
-        <button
-          onClick={() => navigate("/stats")}
-          className={`flex flex-col items-center justify-center w-full h-full ${
-            isActive("/stats") ? "text-blue-600 dark:text-blue-400" : "text-gray-600 dark:text-gray-400"
-          }`}
-        >
-          <BarChart2 size={24} />
-          <span className="text-xs mt-1">Stats</span>
-        </button>
-        <button
-          onClick={() => navigate("/leaderboard")}
-          className={`flex flex-col items-center justify-center w-full h-full ${
-            isActive("/leaderboard") ? "text-blue-600 dark:text-blue-400" : "text-gray-600 dark:text-gray-400"
-          }`}
-        >
-          <Trophy size={24} />
-          <span className="text-xs mt-1">Rankings</span>
-        </button>
-        <button
-          onClick={() => navigate("/settings")}
-          className={`flex flex-col items-center justify-center w-full h-full ${
-            isActive("/settings") ? "text-blue-600 dark:text-blue-400" : "text-gray-600 dark:text-gray-400"
-          }`}
-        >
-          <Settings size={24} />
-          <span className="text-xs mt-1">Settings</span>
-        </button>
+    <nav className="border-t border-slate-800 bg-slate-950/95 backdrop-blur">
+      <div className="mx-auto flex h-20 max-w-3xl items-center justify-around px-4">
+        {navItems.map(item => {
+          const Icon = item.icon;
+          const active = location.pathname === item.path;
+
+          return (
+            <button
+              key={item.path}
+              onClick={() => {
+                triggerHaptic(15);
+                navigate(item.path);
+              }}
+              className={`flex h-14 w-14 flex-col items-center justify-center rounded-2xl transition-all duration-150 ${
+                active
+                  ? "bg-gradient-to-br from-sky-500 via-sky-400 to-cyan-400 text-slate-900 shadow-lg shadow-sky-500/30"
+                  : "text-sky-100/70 hover:text-white"
+              }`}
+            >
+              <Icon size={22} />
+              <span className="mt-1 text-xs font-semibold uppercase tracking-widest">
+                {item.label}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </nav>
   );
