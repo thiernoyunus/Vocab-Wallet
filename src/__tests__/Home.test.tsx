@@ -39,11 +39,10 @@ describe('Home component', () => {
     expect(mockedNavigate).toHaveBeenCalledWith('/review');
   });
 
-  it('should render the streak and mastered sections', () => {
-    expect(screen.getByText('Streak')).toBeInTheDocument();
-    expect(screen.getByText('7 days')).toBeInTheDocument();
-    expect(screen.getByText('Mastered')).toBeInTheDocument();
-    expect(screen.getByText('42')).toBeInTheDocument();
+  it('should render the streak, points, and cards sections', () => {
+    expect(screen.getByText('Current Streak')).toBeInTheDocument();
+    expect(screen.getByText('Points Earned')).toBeInTheDocument();
+    expect(screen.getByText('Cards Reviewed')).toBeInTheDocument();
   });
 
   it('should render the "Arabic Course" section with lessons', () => {

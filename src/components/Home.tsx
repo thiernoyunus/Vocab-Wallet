@@ -1,6 +1,11 @@
-import React from "react";
-import { Book, ChevronRight, Clock, Target, Zap } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Book, ChevronRight, Clock, Target, Zap, Flame, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { StatsState, defaultStats } from "../utils/updateStats";
+import {
+  calculateMilestoneProgress,
+  getStreakStatus,
+} from "../utils/gamification";
 
 const lessons = [{
   id: 1,
@@ -38,6 +43,26 @@ const colorVariants = {
 
 export function Home() {
   const navigate = useNavigate();
+  const [stats, setStats] = useState<StatsState>(defaultStats);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("stats");
+      if (stored) {
+        const parsed: Partial<StatsState> = JSON.parse(stored);
+        setStats(prev => ({ ...prev, ...parsed }));
+      }
+    } catch (err) {
+      console.error("Failed to load stats from localStorage", err);
+    }
+  }, []);
+
+  const milestoneProgress = useMemo(
+    () => calculateMilestoneProgress(stats),
+    [stats]
+  );
+
+  const streakStatus = useMemo(() => getStreakStatus(stats), [stats]);
 
   return (
     <div className="h-full w-full bg-gray-50 dark:bg-gray-900 overflow-auto">
@@ -58,17 +83,70 @@ export function Home() {
             </button>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
           <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
-            <Target className="text-green-600 dark:text-green-400 mb-2" size={20} />
-            <h3 className="font-semibold mb-1 dark:text-white">Streak</h3>
-            <p className="text-2xl font-bold dark:text-white">7 days</p>
+            <Flame className="text-orange-500 dark:text-orange-300 mb-2" size={20} />
+            <h3 className="font-semibold mb-1 dark:text-white">Current Streak</h3>
+            <p className="text-2xl font-bold dark:text-white">
+              {stats.currentStreak} {stats.currentStreak === 1 ? "day" : "days"}
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Longest run: {stats.longestStreak} days
+            </p>
+            <div className="mt-3 h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
+              <div
+                className="h-full bg-orange-500 dark:bg-orange-300 rounded-full transition-all"
+                style={{ width: `${streakStatus.progress}%` }}
+              />
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {streakStatus.nextLevel
+                ? `${streakStatus.daysToNext} day${
+                    streakStatus.daysToNext === 1 ? "" : "s"
+                  } until ${streakStatus.nextLevel.title}`
+                : "Streak legend! You've unlocked every badge."}
+            </p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
-            <Zap className="text-yellow-600 dark:text-yellow-400 mb-2" size={20} />
-            <h3 className="font-semibold mb-1 dark:text-white">Mastered</h3>
-            <p className="text-2xl font-bold dark:text-white">42</p>
+            <Star className="text-yellow-500 dark:text-yellow-300 mb-2" size={20} />
+            <h3 className="font-semibold mb-1 dark:text-white">Points Earned</h3>
+            <p className="text-2xl font-bold dark:text-white">{stats.points}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              +10 for every card you review
+            </p>
           </div>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
+            <Zap className="text-purple-500 dark:text-purple-300 mb-2" size={20} />
+            <h3 className="font-semibold mb-1 dark:text-white">Cards Reviewed</h3>
+            <p className="text-2xl font-bold dark:text-white">{stats.totalCardsReviewed}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Keep going to unlock more milestones
+            </p>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm mb-8">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-semibold dark:text-white">Milestone Journey</h3>
+            <Target className="text-green-600 dark:text-green-400" size={20} />
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+            {milestoneProgress.next
+              ? `${milestoneProgress.cardsToGo} card${
+                  milestoneProgress.cardsToGo === 1 ? "" : "s"
+                } to reach ${milestoneProgress.next.title}`
+              : "You've conquered every milestone—amazing work!"}
+          </p>
+          <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
+            <div
+              className="h-full bg-green-500 rounded-full transition-all"
+              style={{ width: `${milestoneProgress.progress}%` }}
+            />
+          </div>
+          {milestoneProgress.current && (
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              Last milestone: {milestoneProgress.current.title}
+            </p>
+          )}
         </div>
         <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
           <h2 className="text-xl font-bold mb-2 dark:text-white">Arabic Course</h2>
