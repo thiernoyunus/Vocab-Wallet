@@ -98,7 +98,7 @@ export function Review() {
   const cardsRemaining = cards.length - currentCardIndex;
   const progress = (currentCardIndex / cards.length) * 100;
 
-  const handleRating = (rating: "again" | "hard" | "good" | "easy") => {
+  const handleRating = () => {
     setIsAnswered(true);
     setTimeout(() => {
       if (currentCardIndex < cards.length - 1) {
@@ -193,7 +193,7 @@ export function Review() {
         </div>
         <div className="mt-6 grid grid-cols-4 gap-3">
           <button
-            onClick={() => handleRating("again")}
+            onClick={handleRating}
             disabled={!isFlipped || isAnswered}
             className={`p-4 rounded-xl font-medium transition-all duration-200 
               ${
@@ -205,7 +205,7 @@ export function Review() {
             Again
           </button>
           <button
-            onClick={() => handleRating("hard")}
+            onClick={handleRating}
             disabled={!isFlipped || isAnswered}
             className={`p-4 rounded-xl font-medium transition-all duration-200
               ${
@@ -217,7 +217,7 @@ export function Review() {
             Hard
           </button>
           <button
-            onClick={() => handleRating("good")}
+            onClick={handleRating}
             disabled={!isFlipped || isAnswered}
             className={`p-4 rounded-xl font-medium transition-all duration-200
               ${
@@ -229,7 +229,7 @@ export function Review() {
             Good
           </button>
           <button
-            onClick={() => handleRating("easy")}
+            onClick={handleRating}
             disabled={!isFlipped || isAnswered}
             className={`p-4 rounded-xl font-medium transition-all duration-200
               ${
