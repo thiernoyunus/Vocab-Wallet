@@ -1,4 +1,8 @@
 <p align="center">
+  <img src=".github/assets/logo.png" width="112" alt="Vocab Wallet logo" />
+</p>
+
+<p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/gradient.svg?title=Vocab+Wallet&subtitle=Learn+Arabic+vocabulary+with+flashcards&logo=react&mode=dark" />
     <img alt="Vocab Wallet" src="https://shieldcn.dev/header/gradient.svg?title=Vocab+Wallet&subtitle=Learn+Arabic+vocabulary+with+flashcards&logo=react&mode=light" />
